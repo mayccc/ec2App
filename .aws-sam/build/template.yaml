@@ -1,0 +1,48 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'new-app
+
+  app to start and stop ec2 instance
+
+  '
+Globals:
+  Function:
+    Timeout: 3
+Resources:
+  MyApi1:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: default
+      Auth:
+        ApiKeyRequired: true
+  myEC2:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: myEC2
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.8
+      Policies: AmazonEC2FullAccess
+      Events:
+        GET:
+          Type: Api
+          Properties:
+            Path: /ec2
+            Method: get
+            RestApiId:
+              Ref: MyApi1
+            Auth:
+              ApiKeyRequired: true
+        POST:
+          Type: Api
+          Properties:
+            Path: /ec2
+            Method: post
+            RestApiId:
+              Ref: MyApi1
+            Auth:
+              ApiKeyRequired: true
+Outputs:
+  HelloWorldApi:
+    Description: API Gateway endpoint URL for Prod stage for Hello World function
+    Value:
+      Fn::Sub: https://${MyApi1}.execute-api.${AWS::Region}.amazonaws.com/default/ec2/
