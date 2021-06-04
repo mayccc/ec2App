@@ -1,10 +1,10 @@
 import json
 import boto3
 
+
 def lambda_handler(event, context):
     # TODO add error handling
-    response=''
-    
+   
     http_method=  event.get('httpMethod', "")
 
     filters = [
@@ -23,69 +23,60 @@ def lambda_handler(event, context):
         for instance in reservation["Instances"]:
                 RunningInstances.append(instance["InstanceId"])
 
+    def response(code, body ):
+        return {
+            'statusCode': code,
+            'body': json.dumps(str(body))
+        }
+
 
     def get_handler():
 
-        return  {
-            'statusCode': 200,
-            'body': json.dumps(str(RunningInstances))
-        }
-
+        return  response(200, RunningInstances)
 
     def post_handler(event):
-        event= json.loads(event['body'])
-        response_code= 200
         
-        action= event['body'].get('action',"")
-
+        body= json.loads(event['body'])
+        action= body.get('action',"")
 
         if action=="":
-            response_code= 400
-            response_body= 'missing action'
+            result= response(400, 'missing action')
 
         elif action=="Stop_All_Running_Instances":
-           
-            ec2_client.stop_instances(InstanceIds=RunningInstances)
-            response_body = 'Stopped All Running Instances : ' + ','.join(['%s' % i  for i in RunningInstances])  
+            if len(RunningInstances)> 0:
+                ec2_client.stop_instances(InstanceIds=RunningInstances)
 
+            result= response(200, 'Stopped All Running Instances : ' + ','.join(['%s' % i  for i in RunningInstances]) )
+        
         elif action=='start' :
-            if event['body'].get('InstanceId'):
-                Instanceid= event['headers']['InstanceId']
+            if body.get('InstanceId'):
+                Instanceid= body['InstanceId']
                 ec2_client.start_instances(InstanceIds=[Instanceid])
-                response_body ='started instance %s' % Instanceid
+                result= response(200, 'started instance %s' % Instanceid) 
             else: 
-                response_code= 400
-                response_body ='missing InstanceId'
+                result=  response(400,'missing InstanceId')
 
         elif action=='stop' :
-            if event['body'].get('InstanceId'):
-                Instanceid=event['headers']['InstanceId']
+            if body.get('InstanceId'):
+                Instanceid=body['InstanceId']
                 ec2_client.stop_instances(InstanceIds=[Instanceid])
-                response_body ='stopped_instance %s' % Instanceid
+                result= response(200, 'stopped instance %s' % Instanceid) 
             else: 
-                response_code= 400
-                response_body ='missing InstanceId'
+                result= response(400, 'missing InstanceId') 
 
         else:
-            response_code= 400
-            response_body= 'Unsupported action. Action supported:[start, stop, Stop_All_Running_Instances]'
+            result= response(400, 'Unsupported action. Action supported:[start, stop, Stop_All_Running_Instances]') 
         
-        return {
-            'statusCode': response_code,
-            'body': json.dumps(str(response_body))
-        }
-
-
+        return result 
 
     if http_method=='GET':
-        response= get_handler()
+        result = get_handler()
 
     elif http_method=='POST':
-        response= post_handler(event)
+        result = post_handler(event)
 
     else: # unsupported http method
-        response= { 'statusCode': 405 ,
-        'body': json.dumps(str('HTTP method not supported'))} 
+        result = response (405 ,'HTTP method not supported') 
 
     
-    return response
+    return result 
