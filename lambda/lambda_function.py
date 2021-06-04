@@ -4,7 +4,7 @@ import boto3
 def lambda_handler(event, context):
     # TODO add error handling
     response=''
-    event= json.loads(event['body'])
+    
     http_method=  event.get('httpMethod', "")
 
     filters = [
@@ -33,7 +33,7 @@ def lambda_handler(event, context):
 
 
     def post_handler(event):
-
+        event= json.loads(event['body'])
         response_code= 200
         
         action= event['body'].get('action',"")
